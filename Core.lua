@@ -7,7 +7,7 @@ ns.version = (C_AddOns and C_AddOns.GetAddOnMetadata(ADDON, "Version")) or "dev"
 ns.defaults = {
 	columns = 10,          -- item columns per window
 	scale = 1,             -- window scale
-	bgAlpha = 0.2,         -- window background opacity (0 = fully see-through)
+	bgAlpha = 0.3,         -- window background opacity (0 = fully see-through)
 	showUpgrades = true,   -- show gear upgrades in their own category at the top
 	compactEmpty = true,   -- show one "free slot" button per bag type instead of every empty slot
 	newFirst = false,      -- put new items in their own "New Items" category at the top
@@ -103,8 +103,8 @@ ns.On("ADDON_LOADED", function(_, name)
 
 	TBagRemakeDB = TBagRemakeDB or {}
 	local db = TBagRemakeDB
-	-- Move anyone still on the old 55% default to the new 20% default.
-	if db.settings and db.settings.bgAlpha == 0.55 then
+	-- Move anyone still on an old default (55% or 20%) to the new 30% default.
+	if db.settings and (db.settings.bgAlpha == 0.55 or db.settings.bgAlpha == 0.2) then
 		db.settings.bgAlpha = nil
 	end
 	db.settings = ns.CopyDefaults(db.settings or {}, ns.defaults)

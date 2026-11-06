@@ -16,7 +16,7 @@ A bag and bank replacement for **World of Warcraft: Forever** (interface 16001),
   - The score uses stat weights for your class. For example, Strength counts most for Warriors and Intellect for Mages.
   - An item only counts if you can use it: level requirement, armor type and the game's own usability check.
   - Rings, trinkets and dual-wielded weapons are compared against the weaker of your two equipped items. A two-hander is compared against both hands combined.
-- **Adjustable transparency.** Use the "Background opacity" slider in settings or `/tbag alpha <0-1>`. The default is 20%.
+- **Adjustable transparency.** Use the "Background opacity" slider in settings or `/tbag alpha <0-1>`. The default is 30%.
 - **Category editing**, similar to TBag's edit mode:
   - Click a category header to collapse or expand it.
   - Right-click a header to move the category earlier or later, hide it, or create a new one.
