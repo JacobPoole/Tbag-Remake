@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: TBag Remake
+## Notes: Auto-sorting, categorized bag and bank replacement. View any character's bags and bank from anywhere. Inspired by TBag-Shefki.
+## Author: jpoole
+## Version: 0.1.0
+## SavedVariables: TBagRemakeDB
+## IconTexture: Interface\Icons\INV_Misc_Bag_10
+## Category: Bags & Inventory
+## AddonCompartmentFunc: TBagRemake_OnAddonCompartmentClick
+
+Core.lua
+Categories.lua
+Cache.lua
+ItemButtons.lua
+Window.lua
+Blizzard.lua
+Tooltip.lua
+Options.lua
