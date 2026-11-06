@@ -332,6 +332,18 @@ function ns.ExplainUpgrades()
 	end
 end
 
+-- Turns the whole feature (category, green arrows, tooltip line) on or off.
+function ns.SetUpgradesEnabled(enable)
+	enable = enable and true or false
+	ns.settings.showUpgrades = enable
+	-- Keep the settings panel checkbox in sync if it has been registered.
+	if Settings and Settings.SetValue then
+		pcall(Settings.SetValue, "TBAGREMAKE_showUpgrades", enable)
+	end
+	ns.Print(enable and "Gear upgrades turned on." or "Gear upgrades turned off. Use /tbag upgrades on to turn them back on.")
+	ns.RefreshAll()
+end
+
 local function ClearCaches()
 	wipe(upgradeCache)
 	weights = nil

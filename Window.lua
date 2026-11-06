@@ -567,6 +567,9 @@ function Window:ShowCategoryMenu(owner, key)
 				ns.RefreshAll()
 			end)
 		end
+		if key == "upgrades" then
+			root:CreateButton("Turn off gear upgrades", function() ns.SetUpgradesEnabled(false) end)
+		end
 		root:CreateDivider()
 		root:CreateButton("New category...", function() StaticPopup_Show("TBAGREMAKE_NEWCAT") end)
 		if ns.db.custom[key] then

@@ -147,6 +147,7 @@ local function Help()
 	print("  /tbag bank - toggle the bank window (cached view when away from a banker)")
 	print("  /tbag find <text> - search every character's bags, bank, gear and mail")
 	print("  /tbag upgrades - explain which gear in your bags is (or isn't) an upgrade")
+	print("  /tbag upgrades on|off - turn the gear upgrades feature on or off")
 	print("  /tbag cols <n> - items per row (4-24)")
 	print("  /tbag scale <n> - window scale (0.5-2)")
 	print("  /tbag alpha <n> - background opacity (0-1)")
@@ -185,7 +186,14 @@ SlashCmdList.TBAGREMAKE = function(msg)
 		end
 		ns.Print("Scale:", ns.settings.scale)
 	elseif cmd == "upgrades" or cmd == "upgrade" then
-		ns.ExplainUpgrades()
+		local arg = rest:lower()
+		if arg == "on" or arg == "off" or arg == "toggle" then
+			local enable
+			if arg == "toggle" then enable = not ns.settings.showUpgrades else enable = (arg == "on") end
+			ns.SetUpgradesEnabled(enable)
+		else
+			ns.ExplainUpgrades()
+		end
 	elseif cmd == "alpha" or cmd == "opacity" then
 		local n = tonumber(rest)
 		if n then
