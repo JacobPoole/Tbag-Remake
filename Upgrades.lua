@@ -33,11 +33,11 @@ local STAT_PATTERNS = {
 	{ "RESISTANCE", "resist" }, -- fire/frost/etc. (armor matched above first)
 }
 
-local PHYSICAL = { WARRIOR = true, ROGUE = true, HUNTER = true, DEATHKNIGHT = true, DEMONHUNTER = true, MONK = true }
 local CASTER = { MAGE = true, WARLOCK = true, PRIEST = true }
 
 local function WeightsForClass(class)
-	local w = { sta = 0.5, armor = 0.01, resist = 0.05, other = 0.4, tank = 0.1, spi = 0.1 }
+	-- Armor is worth a little for everyone so low-level white gear (armor only) still compares.
+	local w = { sta = 0.5, armor = 0.04, resist = 0.05, other = 0.4, tank = 0.1, spi = 0.1 }
 	if class == "WARRIOR" or class == "DEATHKNIGHT" then
 		w.str, w.agi, w.int, w.ap, w.sp, w.dps, w.tank = 1, 0.6, 0, 0.5, 0, 2.5, 0.4
 	elseif class == "PALADIN" then
@@ -107,43 +107,125 @@ local function Classify(statKey)
 	return "other"
 end
 
+-------------------------------------------------------------------------------
+-- Reading an item's tooltip (usability + backup stat source)
+-------------------------------------------------------------------------------
+
+local function TooltipLines(link)
+	if not (C_TooltipInfo and C_TooltipInfo.GetHyperlink) then return nil end
+	local ok, data = pcall(C_TooltipInfo.GetHyperlink, link)
+	if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return nil end
+	return data.lines
+end
+
+-- Red tooltip text is how the game marks things you cannot use: too low level,
+-- wrong armor/weapon type, wrong class, and so on.
+local function IsRed(c)
+	if type(c) ~= "table" then return false end
+	local r, g, b = ns.Safe(c.r), ns.Safe(c.g), ns.Safe(c.b)
+	return type(r) == "number" and type(g) == "number" and type(b) == "number"
+		and r > 0.9 and g < 0.3 and b < 0.3
+end
+
+local function TooltipBlocker(lines)
+	for _, line in ipairs(lines) do
+		if IsRed(line.leftColor) or IsRed(line.rightColor) then
+			local text = ns.Safe(line.leftText) or ""
+			-- A broken item's durability line is red, but it can still be worn.
+			if not text:find("Durability", 1, true) then
+				local right = ns.Safe(line.rightText)
+				return (text ~= "" and text) or right or "red tooltip line"
+			end
+		end
+	end
+end
+
+-- English tooltip text -> stat bucket, used only if C_Item.GetItemStats gives nothing.
+local TEXT_STATS = {
+	Strength = "str", Agility = "agi", Intellect = "int", Spirit = "spi", Stamina = "sta",
+}
+
+local function StatsFromTooltip(lines)
+	local stats = {}
+	local function add(key, v)
+		v = tonumber((tostring(v):gsub(",", "")))
+		if v then stats[key] = (stats[key] or 0) + v end
+	end
+	for _, line in ipairs(lines) do
+		local text = ns.Safe(line.leftText)
+		if type(text) == "string" then
+			local armor = text:match("^([%d,]+) Armor")
+			if armor then add("armor", armor) end
+			local dps = text:match("%(([%d%.,]+) damage per second%)")
+			if dps then add("dps", dps) end
+			local n, stat = text:match("^%+([%d,]+) (%a+)$")
+			if n and TEXT_STATS[stat] then add(TEXT_STATS[stat], n) end
+			local ap = text:match("[Aa]ttack [Pp]ower by ([%d,]+)")
+			if ap then add("ap", ap) end
+			local sp = text:match("magical spells and effects by up to ([%d,]+)")
+			if sp then add("sp", sp) end
+		end
+	end
+	return stats
+end
+
+-------------------------------------------------------------------------------
+-- Scoring
+-------------------------------------------------------------------------------
+
+-- Returns score, or nil while the item's data is still loading.
 function ns.ScoreItem(link)
 	if not link then return 0 end
 	local cached = scoreCache[link]
 	if cached ~= nil then return cached or nil end
 
-	local stats = C_Item.GetItemStats(link)
-	if not stats then
-		scoreCache[link] = false -- try again once item data arrives
+	if not C_Item.GetItemInfo(link) then
+		scoreCache[link] = false -- not loaded yet; retried on GET_ITEM_INFO_RECEIVED
 		return nil
 	end
+
 	local w = Weights()
 	local score = 0
-	for key, value in pairs(stats) do
-		value = ns.Safe(value)
-		if type(value) == "number" then
-			score = score + value * (w[Classify(key)] or w.other)
+	local stats = C_Item.GetItemStats(link)
+	if type(stats) == "table" and next(stats) then
+		for key, value in pairs(stats) do
+			value = ns.Safe(value)
+			if type(value) == "number" then
+				score = score + value * (w[Classify(key)] or w.other)
+			end
+		end
+	else
+		local lines = TooltipLines(link)
+		if lines then
+			for bucket, value in pairs(StatsFromTooltip(lines)) do
+				score = score + value * (w[bucket] or w.other)
+			end
 		end
 	end
 	scoreCache[link] = score
 	return score
 end
 
-local function CanWear(link, itemID)
+-- Returns ok, equipLocOrReason
+local function CanWear(link)
 	local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(link)
-	if not equipLoc or not SLOT[equipLoc] then return false end
+	if not equipLoc or not SLOT[equipLoc] then return false, "not gear" end
 
-	local minLevel = select(5, C_Item.GetItemInfo(link))
-	if minLevel and minLevel > UnitLevel("player") then return false end
-
-	if classID == CLASS_ARMOR and subClassID and subClassID >= 1 and subClassID <= 4 and equipLoc ~= "INVTYPE_CLOAK" then
-		local max = MAX_ARMOR[select(2, UnitClass("player"))]
-		if max and subClassID > max then return false end
+	local lines = TooltipLines(link)
+	if lines then
+		local blocker = TooltipBlocker(lines)
+		if blocker then return false, "unusable: " .. blocker end
+		return true, equipLoc
 	end
 
-	if C_PlayerInfo and C_PlayerInfo.CanUseItem and itemID then
-		local ok, usable = pcall(C_PlayerInfo.CanUseItem, itemID)
-		if ok and ns.Safe(usable) == false then return false end
+	-- No tooltip data available: fall back to level and armor type rules.
+	local minLevel = select(5, C_Item.GetItemInfo(link))
+	if minLevel and minLevel > UnitLevel("player") then
+		return false, "requires level " .. minLevel
+	end
+	if classID == CLASS_ARMOR and subClassID and subClassID >= 1 and subClassID <= 4 and equipLoc ~= "INVTYPE_CLOAK" then
+		local max = MAX_ARMOR[select(2, UnitClass("player"))]
+		if max and subClassID > max then return false, "armor type too heavy" end
 	end
 	return true, equipLoc
 end
@@ -156,11 +238,10 @@ local function EquippedScore(equipLoc)
 		local mh = GetInventoryItemLink("player", 16)
 		local oh = GetInventoryItemLink("player", 17)
 		local s1, s2 = ns.ScoreItem(mh), ns.ScoreItem(oh)
-		if (mh and not s1) or (oh and not s2) then return nil end
-		return (s1 or 0) + (s2 or 0), mh
+		if s1 == nil or s2 == nil then return nil end
+		return s1 + s2, mh
 	end
 	if equipLoc == "INVTYPE_WEAPON" then
-		slots = { 16 }
 		local oh = GetInventoryItemLink("player", 17)
 		local ohLoc = oh and select(4, C_Item.GetItemInfoInstant(oh))
 		if ohLoc == "INVTYPE_WEAPON" or ohLoc == "INVTYPE_WEAPONOFFHAND" then
@@ -182,35 +263,73 @@ local function EquippedScore(equipLoc)
 	return worst or 0, worstLink
 end
 
--- Returns isUpgrade, scoreDelta, linkOfItemItWouldReplace
-function ns.GetUpgradeInfo(link, itemID)
-	if not link then return false end
-	local cached = upgradeCache[link]
-	if cached then return cached[1], cached[2], cached[3] end
-
-	local canWear, equipLoc = CanWear(link, itemID)
-	if not canWear then
-		upgradeCache[link] = { false }
-		return false
+-- Full evaluation with the reason, used by GetUpgradeInfo and /tbag upgrades.
+-- result.status is "loading", "skip" or "done".
+local function Evaluate(link)
+	if not C_Item.GetItemInfo(link) then
+		return { status = "loading", reason = "item data still loading" }
+	end
+	local ok, equipLocOrReason = CanWear(link)
+	if not ok then
+		return { status = "skip", reason = equipLocOrReason }
 	end
 	-- Something you are already wearing is never an upgrade (e.g. hovering
 	-- your better ring would otherwise compare it against your weaker one).
 	for slot = 1, 19 do
 		if GetInventoryItemLink("player", slot) == link then
-			upgradeCache[link] = { false }
-			return false
+			return { status = "skip", reason = "already equipped" }
 		end
 	end
-
 	local score = ns.ScoreItem(link)
-	local equipped, versus = EquippedScore(equipLoc)
+	local equipped, versus = EquippedScore(equipLocOrReason)
 	if not score or not equipped then
-		return false -- item data still loading; not cached so we retry later
+		return { status = "loading", reason = "item data still loading" }
 	end
 	local delta = score - equipped
-	local isUpgrade = delta > 0.5
-	upgradeCache[link] = { isUpgrade, delta, versus }
-	return isUpgrade, delta, versus
+	return {
+		status = "done", isUpgrade = delta > 0.01, delta = delta,
+		score = score, equipped = equipped, versus = versus,
+	}
+end
+
+-- Returns isUpgrade, scoreDelta, linkOfItemItWouldReplace
+function ns.GetUpgradeInfo(link)
+	if not link then return false end
+	local r = upgradeCache[link]
+	if not r then
+		r = Evaluate(link)
+		if r.status == "loading" then
+			scoreCache[link] = false -- makes GET_ITEM_INFO_RECEIVED trigger a re-check
+			return false
+		end
+		upgradeCache[link] = r
+	end
+	return r.isUpgrade or false, r.delta, r.versus
+end
+
+-- /tbag upgrades: explain the decision for every piece of gear in your bags.
+function ns.ExplainUpgrades()
+	ns.Print("Upgrade check (" .. (select(2, UnitClass("player")) or "?") .. ", level " .. UnitLevel("player") .. "):")
+	local n = 0
+	for _, bag in ipairs(ns.InventoryBags()) do
+		for slot = 1, C_Container.GetContainerNumSlots(bag) or 0 do
+			local info = C_Container.GetContainerItemInfo(bag, slot)
+			local link = info and info.hyperlink
+			if link and SLOT[select(4, C_Item.GetItemInfoInstant(link)) or ""] then
+				n = n + 1
+				local r = Evaluate(link)
+				if r.status == "done" then
+					print(string.format("  %s: %s (score %.1f vs %.1f for %s)", link,
+						r.isUpgrade and "|cff20ff20UPGRADE|r" or "not better", r.score, r.equipped, r.versus or "empty slot"))
+				else
+					print("  " .. link .. ": " .. r.reason)
+				end
+			end
+		end
+	end
+	if n == 0 then
+		print("  No wearable gear found in your bags.")
+	end
 end
 
 local function ClearCaches()
