@@ -417,7 +417,7 @@ function Window:Refresh()
 				h.catKey = key
 				local count = 0
 				if key == "empty" then
-					for _, e in ipairs(visible) do count = count + (e.freeCount or 1) end
+					count = free -- same number as the footer (excludes reagent bag)
 				else
 					count = #items
 				end

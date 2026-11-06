@@ -13,13 +13,22 @@ local REAGENT_BAG = (Enum.BagIndex and Enum.BagIndex.ReagentBag) or 5
 -- Which containers make up the inventory / bank
 -------------------------------------------------------------------------------
 
+-- Number of usable slots in a container. The bag API reports the keyring at its
+-- maximum possible size, so use GetKeyRingSize() like Blizzard's own bags do.
+local function ContainerSize(bag)
+	if KEYRING_CONTAINER and bag == KEYRING_CONTAINER then
+		return GetKeyRingSize and GetKeyRingSize() or 0
+	end
+	return C_Container.GetContainerNumSlots(bag) or 0
+end
+
 function ns.InventoryBags()
 	local bags = {}
 	local last = NUM_TOTAL_BAG_FRAMES or 5
 	for bag = 0, last do
 		table.insert(bags, bag)
 	end
-	if KEYRING_CONTAINER and C_Container.GetContainerNumSlots(KEYRING_CONTAINER) > 0 then
+	if KEYRING_CONTAINER and ContainerSize(KEYRING_CONTAINER) > 0 then
 		table.insert(bags, KEYRING_CONTAINER)
 	end
 	return bags
@@ -49,6 +58,19 @@ local function FamilyKey(bag, family)
 	return "general"
 end
 
+-- The keyring and reagent bag only hold special items, so (like Blizzard's
+-- free-slot count) they are left out of the "x/y free" numbers. Free keyring
+-- slots are not shown at all, since keys go there automatically.
+local function CountsAsBagSpace(famKey)
+	return famKey ~= "keyring" and famKey ~= "reagent"
+end
+
+local function AddEmpty(empties, bag, slot, famKey, live)
+	if famKey ~= "keyring" then
+		empties[#empties + 1] = { bag = bag, slot = slot, family = famKey, live = live }
+	end
+end
+
 -------------------------------------------------------------------------------
 -- Reading containers
 -------------------------------------------------------------------------------
@@ -61,9 +83,10 @@ function ns.ReadLive(bags, store)
 	if store then wipe(store) end
 
 	for _, bag in ipairs(bags) do
-		local size = C_Container.GetContainerNumSlots(bag) or 0
+		local size = ContainerSize(bag)
 		local _, family = C_Container.GetContainerNumFreeSlots(bag)
 		local famKey = FamilyKey(bag, family)
+		local counts = CountsAsBagSpace(famKey)
 		local bagStore
 		if store then
 			bagStore = { size = size, fam = famKey }
@@ -71,7 +94,7 @@ function ns.ReadLive(bags, store)
 		end
 
 		for slot = 1, size do
-			total = total + 1
+			if counts then total = total + 1 end
 			local info = C_Container.GetContainerItemInfo(bag, slot)
 			if info and info.itemID then
 				local quest = C_Container.GetContainerItemQuestInfo(bag, slot)
@@ -93,8 +116,8 @@ function ns.ReadLive(bags, store)
 					bagStore[slot] = { l = e.link, id = e.itemID, n = e.name, c = e.count, q = e.quality, i = e.icon, qi = e.isQuest or nil }
 				end
 			else
-				free = free + 1
-				empties[#empties + 1] = { bag = bag, slot = slot, family = famKey, live = true }
+				if counts then free = free + 1 end
+				AddEmpty(empties, bag, slot, famKey, true)
 			end
 		end
 	end
@@ -113,8 +136,10 @@ function ns.ReadCached(store)
 
 	for _, bag in ipairs(bags) do
 		local b = store[bag]
+		local famKey = b.fam or "general"
+		local counts = CountsAsBagSpace(famKey)
 		for slot = 1, (b.size or 0) do
-			total = total + 1
+			if counts then total = total + 1 end
 			local s = b[slot]
 			if s then
 				entries[#entries + 1] = {
@@ -123,8 +148,8 @@ function ns.ReadCached(store)
 					icon = s.i or (s.id and C_Item.GetItemIconByID(s.id)), isQuest = s.qi,
 				}
 			else
-				free = free + 1
-				empties[#empties + 1] = { bag = bag, slot = slot, family = b.fam or "general", live = false }
+				if counts then free = free + 1 end
+				AddEmpty(empties, bag, slot, famKey, false)
 			end
 		end
 	end
