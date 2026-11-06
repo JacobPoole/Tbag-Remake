@@ -11,6 +11,7 @@ ns.defaults = {
 	showUpgrades = true,   -- show gear upgrades in their own category at the top
 	compactEmpty = true,   -- show one "free slot" button per bag type instead of every empty slot
 	newFirst = false,      -- put new items in their own "New Items" category at the top
+	clearNewOnClose = true, -- items stop being "new" once the bags have been opened and closed
 	dimSearch = true,      -- dim non-matching items while searching (false = hide them)
 	hideBlizzard = true,   -- hide the default bag and bank frames (requires /reload)
 	tooltipCounts = true,  -- show counts across characters in item tooltips

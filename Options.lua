@@ -37,6 +37,8 @@ local function Register()
 		"Show a single button with a count for each kind of free slot, instead of every empty slot.")
 	Checkbox("newFirst", "New items category",
 		"Put newly looted items in a \"New Items\" category at the top until you mouse over them.")
+	Checkbox("clearNewOnClose", "Clear new items when bags close",
+		"Items stop glowing as new (and leave the New Items category) once you've opened and closed your bags. When off, they stay new until you mouse over them.")
 	Checkbox("dimSearch", "Dim search misses",
 		"While searching, dim items that do not match. When off, non-matching items are hidden.")
 	Checkbox("tooltipCounts", "Character counts in tooltips",

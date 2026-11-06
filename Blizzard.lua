@@ -59,6 +59,16 @@ function ns.SetupBlizzardHooks()
 	-- Closing our window (X button or Escape) closes Blizzard's hidden bags too,
 	-- so the next keypress opens them again instead of needing two presses.
 	function inv:OnClosed()
+		-- Like Blizzard's bags: items stop being "new" once you've seen them.
+		if ns.settings.clearNewOnClose and C_NewItems then
+			for _, bag in ipairs(ns.InventoryBags()) do
+				for slot = 1, C_Container.GetContainerNumSlots(bag) or 0 do
+					if C_NewItems.IsNewItem(bag, slot) then
+						C_NewItems.RemoveNewItem(bag, slot)
+					end
+				end
+			end
+		end
 		if not syncing and IsAnyBagOpen() then
 			CloseAllBags()
 		end

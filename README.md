@@ -24,7 +24,7 @@ A bag and bank replacement for **World of Warcraft: Forever** (interface 16001),
   - Click a category header to collapse or expand it.
   - Right-click a header to move the category earlier or later, hide it, or create a new one.
   - Alt+Right-click an item to assign it to any category, including ones you created.
-- **New-item highlighting**, with an optional "New Items" category at the top.
+- **New-item highlighting**, with an optional "New Items" category at the top. Items stop being new once you open and close your bags, like the default bags. Turn off "Clear new items when bags close" in settings to keep them new until you mouse over them.
 - **Compact free slots.** All empty slots of one kind show as a single button with a count, and you can drop items onto it.
 - Item buttons use Blizzard's own bag item buttons, so using, selling, banking, splitting stacks and dragging work the same as in the default bags.
 
