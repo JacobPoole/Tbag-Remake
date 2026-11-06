@@ -29,6 +29,10 @@ local function Register()
 	Slider("columns", "Items per row", "How many item buttons fit across a window.", 4, 24, 1)
 	Slider("scale", "Window scale", "Scale of the bag and bank windows.", 0.5, 2, 0.05,
 		function(v) return string.format("%.2f", v) end)
+	Slider("bgAlpha", "Background opacity", "How solid the window background is. Lower is more see-through.", 0, 1, 0.05,
+		function(v) return string.format("%d%%", v * 100) end)
+	Checkbox("showUpgrades", "Gear upgrades category",
+		"Show items that score better than your equipped gear (using stat weights for your class) in a \"Gear Upgrades\" category near the top.")
 	Checkbox("compactEmpty", "Compact free slots",
 		"Show a single button with a count for each kind of free slot, instead of every empty slot.")
 	Checkbox("newFirst", "New items category",

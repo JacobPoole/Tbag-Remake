@@ -7,6 +7,8 @@ ns.version = (C_AddOns and C_AddOns.GetAddOnMetadata(ADDON, "Version")) or "dev"
 ns.defaults = {
 	columns = 10,          -- item columns per window
 	scale = 1,             -- window scale
+	bgAlpha = 0.55,        -- window background opacity (0 = fully see-through)
+	showUpgrades = true,   -- show gear upgrades in their own category at the top
 	compactEmpty = true,   -- show one "free slot" button per bag type instead of every empty slot
 	newFirst = false,      -- put new items in their own "New Items" category at the top
 	dimSearch = true,      -- dim non-matching items while searching (false = hide them)
@@ -105,6 +107,7 @@ ns.On("ADDON_LOADED", function(_, name)
 	db.chars = db.chars or {}
 	db.account = db.account or {}
 	db.assign = db.assign or {}       -- [itemID] = categoryKey (manual overrides)
+	db.pinned = db.pinned or {}       -- [itemID] = true (always shown at the top)
 	db.custom = db.custom or {}       -- [categoryKey] = display name (user-made categories)
 	db.catOrder = db.catOrder or {}   -- ordered category keys
 	db.collapsed = db.collapsed or {} -- [categoryKey] = true
@@ -141,10 +144,12 @@ local function Help()
 	print("  /tbag find <text> - search every character's bags, bank, gear and mail")
 	print("  /tbag cols <n> - items per row (4-24)")
 	print("  /tbag scale <n> - window scale (0.5-2)")
+	print("  /tbag alpha <n> - background opacity (0-1)")
 	print("  /tbag newcat <name> - create a custom category")
 	print("  /tbag lock - lock/unlock window positions")
 	print("  /tbag reset - reset window positions")
 	print("  /tbag config - open settings")
+	print("  Tip: Alt+Left-click an item to pin it to the top of your bags.")
 	print("  Tip: Alt+Right-click an item to assign it to a category.")
 	print("  Tip: Click a category header to collapse it, right-click to reorder.")
 end
@@ -174,6 +179,13 @@ SlashCmdList.TBAGREMAKE = function(msg)
 			ns.RefreshAll()
 		end
 		ns.Print("Scale:", ns.settings.scale)
+	elseif cmd == "alpha" or cmd == "opacity" then
+		local n = tonumber(rest)
+		if n then
+			ns.settings.bgAlpha = math.max(0, math.min(1, n))
+			ns.RefreshAll()
+		end
+		ns.Print("Background opacity:", ns.settings.bgAlpha)
 	elseif cmd == "newcat" then
 		ns.CreateCustomCategory(rest)
 	elseif cmd == "lock" then

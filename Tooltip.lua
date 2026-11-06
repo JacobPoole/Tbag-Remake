@@ -14,11 +14,23 @@ local function NameColor(key)
 end
 
 local function AddCounts(tooltip, data)
-	if not ns.db or not ns.settings.tooltipCounts then return end
+	if not ns.db then return end
 	if tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip then return end
 	local itemID = data and ns.Safe(data.id)
 	if type(itemID) ~= "number" then return end
 
+	-- Upgrade note: what the item beats and by how much.
+	local link = ns.Safe(data.hyperlink)
+	if ns.settings.showUpgrades and type(link) == "string" and ns.GetUpgradeInfo then
+		local isUpgrade, delta, versus = ns.GetUpgradeInfo(link, itemID)
+		if isUpgrade then
+			tooltip:AddLine(" ")
+			tooltip:AddLine(string.format("|cff20ff20TBag: Upgrade|r (+%.1f score vs %s)",
+				delta, versus or "empty slot"), 1, 1, 1, true)
+		end
+	end
+
+	if not ns.settings.tooltipCounts then return end
 	local results = ns.CountItem(itemID)
 	if #results == 0 then return end
 

@@ -41,10 +41,13 @@ function ns.ShowAssignMenu(owner, itemID, link)
 	if not itemID or not MenuUtil then return end
 	MenuUtil.CreateContextMenu(owner, function(_, root)
 		root:CreateTitle(link or ("Item " .. itemID))
+		root:CreateCheckbox("Pin to top", function() return ns.IsPinned(itemID) end,
+			function() ns.TogglePin(itemID) end)
+		root:CreateDivider()
 		root:CreateRadio("Automatic", function() return ns.db.assign[itemID] == nil end,
 			function() ns.AssignItem(itemID, nil) end)
 		for _, key in ipairs(ns.GetCategoryOrder()) do
-			if key ~= "empty" and key ~= "new" then
+			if key ~= "empty" and key ~= "new" and key ~= "pinned" and key ~= "upgrades" then
 				root:CreateRadio(ns.CategoryName(key),
 					function() return ns.db.assign[itemID] == key end,
 					function() ns.AssignItem(itemID, key) end)
@@ -67,6 +70,24 @@ local function AddDecorations(b)
 	b.tbagFree = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalLarge")
 	b.tbagFree:SetPoint("CENTER")
 	b.tbagFree:SetTextColor(0.8, 0.8, 0.8)
+
+	-- Star in the top-right corner of pinned items.
+	b.tbagPin = b:CreateTexture(nil, "OVERLAY", nil, 5)
+	b.tbagPin:SetTexture([[Interface\TargetingFrame\UI-RaidTargetingIcon_1]])
+	b.tbagPin:SetSize(13, 13)
+	b.tbagPin:SetPoint("TOPRIGHT", -1, -1)
+	b.tbagPin:Hide()
+
+	-- Green arrow in the top-left corner of gear upgrades.
+	b.tbagUp = b:CreateTexture(nil, "OVERLAY", nil, 5)
+	b.tbagUp:SetAtlas("bags-greenarrow", true)
+	b.tbagUp:SetPoint("TOPLEFT", 1, -1)
+	b.tbagUp:Hide()
+end
+
+local function UpdateMarkers(b, e)
+	b.tbagPin:SetShown(e.link and ns.IsPinned(e.itemID) and true or false)
+	b.tbagUp:SetShown(e.link and e.isUpgrade and ns.settings.showUpgrades and true or false)
 end
 
 -------------------------------------------------------------------------------
@@ -77,11 +98,13 @@ local liveButtons = {}
 local liveCount = 0
 
 local function LiveOnClick(self, button)
-	if button == "RightButton" and IsAltKeyDown() then
-		local info = C_Container.GetContainerItemInfo(self:GetBagID(), self:GetID())
-		if info then
-			ns.ShowAssignMenu(self, info.itemID, info.hyperlink)
-		end
+	if not IsAltKeyDown() or CursorHasItem() then return end
+	local info = C_Container.GetContainerItemInfo(self:GetBagID(), self:GetID())
+	if not info then return end
+	if button == "RightButton" then
+		ns.ShowAssignMenu(self, info.itemID, info.hyperlink)
+	elseif button == "LeftButton" then
+		ns.TogglePin(info.itemID)
 	end
 end
 
@@ -118,6 +141,7 @@ function ns.UpdateLiveButton(b, e, freeCount)
 	b:UpdateJunkItem(e.quality, e.noValue)
 	b.readable = e.readable
 	b.tbagFree:SetText(freeCount and freeCount > 1 and freeCount or "")
+	UpdateMarkers(b, e)
 end
 
 function ns.ForEachLiveButton(fn)
@@ -178,6 +202,8 @@ local function CachedOnClick(self, button)
 	if not self.link then return end
 	if button == "RightButton" and IsAltKeyDown() then
 		ns.ShowAssignMenu(self, self.itemID, self.link)
+	elseif button == "LeftButton" and IsAltKeyDown() then
+		ns.TogglePin(self.itemID)
 	elseif IsModifiedClick() then
 		HandleModifiedItemClick(self.link)
 	end
@@ -203,4 +229,5 @@ function ns.UpdateCachedButton(b, e, freeCount)
 	SetItemButtonCount(b, e.link and e.count or 0)
 	SetItemButtonQuality(b, e.quality, e.link)
 	b.tbagFree:SetText(freeCount and freeCount > 1 and freeCount or "")
+	UpdateMarkers(b, e)
 end

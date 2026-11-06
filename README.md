@@ -11,6 +11,12 @@ A bag and bank replacement for **World of Warcraft: Forever** (interface 16001),
 - **Search.** The search box dims items that don't match. `/tbag find <text>` searches every character's bags, bank, equipped gear and mail.
 - **Tooltip counts.** Item tooltips show how many of that item each character has.
 - **Gold summary.** Hover over the gold display to see every character's gold and the total.
+- **Pinned items.** Alt+Left-click an item, or choose "Pin to top" from its Alt+Right-click menu, to keep it in a Pinned category at the top. Pinned items show a star in the corner.
+- **Gear Upgrades category.** Gear in your bags or bank that scores better than what you're wearing is listed near the top and marked with a green arrow. Its tooltip shows the score difference and which equipped item it beats.
+  - The score uses stat weights for your class. For example, Strength counts most for Warriors and Intellect for Mages.
+  - An item only counts if you can use it: level requirement, armor type and the game's own usability check.
+  - Rings, trinkets and dual-wielded weapons are compared against the weaker of your two equipped items. A two-hander is compared against both hands combined.
+- **Adjustable transparency.** Use the "Background opacity" slider in settings or `/tbag alpha <0-1>`. The default is 55%.
 - **Category editing**, similar to TBag's edit mode:
   - Click a category header to collapse or expand it.
   - Right-click a header to move the category earlier or later, hide it, or create a new one.
@@ -38,6 +44,7 @@ The folder must be named `Tbag-Remake` to match `Tbag-Remake.toc`.
 | `/tbag find <text>` | Search all characters |
 | `/tbag cols <n>` | Items per row (4-24) |
 | `/tbag scale <n>` | Window scale (0.5-2) |
+| `/tbag alpha <n>` | Background opacity (0-1) |
 | `/tbag newcat <name>` | Create a custom category |
 | `/tbag lock` | Lock or unlock window dragging |
 | `/tbag reset` | Reset window positions |
@@ -51,6 +58,7 @@ Settings are also under Options > AddOns > TBag Remake.
 |---|---|
 | `Core.lua` | Namespace, saved variables, event dispatch, slash commands |
 | `Categories.lua` | Category list, item classification, sorting, custom categories |
+| `Upgrades.lua` | Stat scoring and gear upgrade detection |
 | `Cache.lua` | Reads bags and bank, keeps the per-character cache, cross-character search and counts |
 | `ItemButtons.lua` | Live (Blizzard template) and cached (read-only) item buttons, assign menu |
 | `Window.lua` | Inventory and bank windows: layout, search, menus, footer |

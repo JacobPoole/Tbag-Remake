@@ -80,8 +80,6 @@ function ns.CreateWindow(kind)
 		tile = true, tileSize = 16, edgeSize = 16,
 		insets = { left = 4, right = 4, top = 4, bottom = 4 },
 	})
-	f:SetBackdropColor(0.04, 0.04, 0.06, 0.94)
-	f:SetBackdropBorderColor(0.55, 0.55, 0.6, 1)
 	table.insert(UISpecialFrames, name) -- close with Escape
 
 	f:RegisterForDrag("LeftButton")
@@ -338,6 +336,9 @@ function Window:Refresh()
 	local f = self.frame
 	if not f:IsShown() or not ns.db then return end
 	f:SetScale(ns.settings.scale or 1)
+	local alpha = ns.settings.bgAlpha or 0.55
+	f:SetBackdropColor(0.04, 0.04, 0.06, alpha)
+	f:SetBackdropBorderColor(0.55, 0.55, 0.6, math.min(1, alpha + 0.3))
 
 	local live = self:IsLive()
 	local entries, empties, total, free = self:Collect()

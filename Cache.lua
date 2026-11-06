@@ -85,6 +85,9 @@ function ns.ReadLive(bags, store)
 					isQuestItem = quest and quest.isQuestItem, questID = quest and quest.questID,
 					questActive = quest and quest.isActive,
 				}
+				if ns.settings.showUpgrades and ns.GetUpgradeInfo then
+					e.isUpgrade = ns.GetUpgradeInfo(e.link, e.itemID)
+				end
 				entries[#entries + 1] = e
 				if bagStore then
 					bagStore[slot] = { l = e.link, id = e.itemID, n = e.name, c = e.count, q = e.quality, i = e.icon, qi = e.isQuest or nil }

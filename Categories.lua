@@ -25,6 +25,8 @@ local MISC_SUB_MOUNT = 5
 
 -- Built-in categories in their default display order.
 ns.builtinCategories = {
+	{ key = "pinned",     name = "Pinned" },
+	{ key = "upgrades",   name = "Gear Upgrades" },
 	{ key = "new",        name = "New Items" },
 	{ key = "quest",      name = "Quest Items" },
 	{ key = "weapon",     name = "Weapons" },
@@ -80,7 +82,22 @@ function ns.GetCategoryOrder()
 			table.insert(order, insertAt, key)
 		end
 	end
-	for _, c in ipairs(ns.builtinCategories) do append(c.key) end
+	-- A built-in missing from a saved order (e.g. added in an update) goes right
+	-- after the built-in that precedes it by default, or first if there is none.
+	local prevBuiltin
+	for _, c in ipairs(ns.builtinCategories) do
+		if not seen[c.key] then
+			seen[c.key] = true
+			local insertAt = 1
+			if prevBuiltin then
+				for i, k in ipairs(order) do
+					if k == prevBuiltin then insertAt = i + 1 break end
+				end
+			end
+			table.insert(order, insertAt, c.key)
+		end
+		prevBuiltin = c.key
+	end
 	local customKeys = {}
 	for key in pairs(db.custom) do table.insert(customKeys, key) end
 	table.sort(customKeys)
@@ -141,15 +158,33 @@ function ns.AssignItem(itemID, key)
 	ns.RefreshAll()
 end
 
+function ns.IsPinned(itemID)
+	return itemID and ns.db.pinned[itemID] or false
+end
+
+function ns.TogglePin(itemID)
+	if not itemID then return end
+	ns.db.pinned[itemID] = not ns.db.pinned[itemID] or nil
+	ns.RefreshAll()
+end
+
 -------------------------------------------------------------------------------
 -- Classification
 -------------------------------------------------------------------------------
 
 -- entry fields: itemID, link, quality, isQuest, isNew
 function ns.Classify(entry)
+	if ns.IsPinned(entry.itemID) then
+		return "pinned"
+	end
+
 	local assigned = entry.itemID and ns.db.assign[entry.itemID]
 	if assigned and ns.CategoryExists(assigned) then
 		return assigned
+	end
+
+	if entry.isUpgrade and ns.settings.showUpgrades then
+		return "upgrades"
 	end
 
 	if entry.isNew and ns.settings.newFirst then
