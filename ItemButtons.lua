@@ -108,19 +108,40 @@ local function LiveOnClick(self, button)
 	end
 end
 
+-- One invisible holder frame per bag, whose frame ID is the bag ID.
+-- IMPORTANT: never call button:SetBagID(). That stores bagID in a Lua field
+-- written by addon code, which taints it, and Blizzard's click handler reads
+-- it right before the protected C_Container.UseContainerItem call, so using
+-- items gets blocked. With no bagID field, GetBagID() falls back to
+-- self:GetParent():GetID(), which the game stores itself and stays untainted.
+local holders = {}
+
+local function GetHolder(parent, bag)
+	local h = holders[bag]
+	if not h then
+		h = CreateFrame("Frame", nil, parent)
+		h:SetID(bag)
+		h:SetAllPoints(parent)
+		holders[bag] = h
+	elseif h:GetParent() ~= parent then
+		h:SetParent(parent)
+		h:ClearAllPoints()
+		h:SetAllPoints(parent)
+	end
+	return h
+end
+
 function ns.GetLiveButton(parent, bag, slot)
+	local holder = GetHolder(parent, bag)
 	local key = bag .. ":" .. slot
 	local b = liveButtons[key]
 	if not b then
 		liveCount = liveCount + 1
-		b = CreateFrame("ItemButton", "TBagRemakeItem" .. liveCount, parent, "ContainerFrameItemButtonTemplate")
-		b:SetBagID(bag)
+		b = CreateFrame("ItemButton", "TBagRemakeItem" .. liveCount, holder, "ContainerFrameItemButtonTemplate")
 		b:SetID(slot)
 		b:HookScript("OnClick", LiveOnClick)
 		AddDecorations(b)
 		liveButtons[key] = b
-	elseif b:GetParent() ~= parent then
-		b:SetParent(parent)
 	end
 	return b
 end
