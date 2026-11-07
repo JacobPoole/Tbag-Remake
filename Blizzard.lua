@@ -31,13 +31,38 @@ local function HideBlizzardBags()
 	end
 end
 
-local function HideBlizzardBank()
-	-- Parenting BankFrame to a hidden frame before it is ever shown means its
-	-- OnShow/OnHide never run, so the bank interaction stays open while our
-	-- window is the one you see. Closing our bank window ends the interaction.
-	if BankFrame then
-		BankFrame:SetParent(hiddenParent)
+-- The default bank is NOT reparented (unlike the bags). It has to open and run
+-- its own setup normally, untainted: that claims the free first bank tab, picks
+-- the bank right-click deposits go to, and its purchase button calls the
+-- restricted C_Bank.PurchaseBankTab, which addon code is not allowed to call.
+-- So it opens as usual and is then shrunk to nothing and made invisible. The
+-- "Blizzard Bank" button in our bank window brings it back for buying tabs.
+local function ApplyBankVisibility()
+	if not BankFrame or not ns.settings.hideBlizzard then return end
+	if ns.showBlizzardBank then
+		BankFrame:SetScale(1)
+		BankFrame:SetAlpha(1)
+	else
+		BankFrame:SetScale(0.001) -- tiny, so it can't catch mouse clicks
+		BankFrame:SetAlpha(0)
 	end
+end
+
+function ns.ToggleBlizzardBank()
+	ns.showBlizzardBank = not ns.showBlizzardBank
+	ApplyBankVisibility()
+	if ns.bank then ns.bank:Refresh() end
+end
+
+local function HideBlizzardBank()
+	if not BankFrame then return end
+	BankFrame:HookScript("OnShow", function()
+		ns.showBlizzardBank = false
+		ApplyBankVisibility()
+	end)
+	BankFrame:HookScript("OnHide", function()
+		ns.showBlizzardBank = false
+	end)
 end
 
 function ns.SetupBlizzardHooks()
@@ -90,10 +115,8 @@ function ns.SetupBlizzardHooks()
 		end
 		bank.frame:Show()
 		bank:Refresh()
-		if ns.settings.hideBlizzard then
-			-- BankFrame's OnShow normally opens the bags; it never runs while hidden.
-			OpenAllBags()
-		end
+		-- Blizzard's BankFrame OnShow opens the bags itself (OpenAllBags), which
+		-- our hooks mirror; this just makes sure the inventory is visible.
 		inv.frame:Show()
 	end)
 
@@ -103,9 +126,7 @@ function ns.SetupBlizzardHooks()
 		ns.closingBank = true
 		bank.frame:Hide()
 		ns.closingBank = false
-		if ns.settings.hideBlizzard then
-			CloseAllBags()
-		end
+		-- Blizzard's BankFrame OnHide closes the bags it opened (CloseAllBags).
 		ns.RefreshAll()
 	end)
 end

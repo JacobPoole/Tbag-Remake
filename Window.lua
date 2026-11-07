@@ -187,6 +187,14 @@ function ns.CreateWindow(kind)
 	f.Slots = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	f.Slots:SetPoint("BOTTOMLEFT", PAD + 2, PAD + 2)
 
+	if kind == "bank" then
+		f.BlizzBank = SmallButton(f, "Blizzard Bank", 104)
+		f.BlizzBank:SetPoint("LEFT", f.Slots, "RIGHT", 8, 0)
+		f.BlizzBank:SetScript("OnClick", function() ns.ToggleBlizzardBank() end)
+		AddTooltip(f.BlizzBank, "Blizzard Bank",
+			"Show or hide the default bank window. Use it to buy bank tabs and change tab settings.")
+	end
+
 	f.MoneyHolder = CreateFrame("Frame", nil, f)
 	f.MoneyHolder:SetSize(160, 16)
 	f.MoneyHolder:SetPoint("BOTTOMRIGHT", -PAD - 2, PAD)
@@ -499,6 +507,8 @@ function Window:Refresh()
 		end
 		f.Restack:SetEnabled(live)
 		f.Deposit:SetEnabled(live)
+		f.BlizzBank:SetShown(ns.atBank and ns.settings.hideBlizzard and BankFrame ~= nil)
+		f.BlizzBank:SetText(ns.showBlizzardBank and "Hide Blizzard" or "Blizzard Bank")
 		f.CharTab:SetEnabled(self.bankType ~= ns.BANK_CHARACTER)
 		f.WarbandTab:SetEnabled(self.bankType ~= ns.BANK_ACCOUNT)
 	end

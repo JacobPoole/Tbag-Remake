@@ -6,7 +6,7 @@ A bag and bank replacement for **World of Warcraft: Forever** (interface 16001),
 ## Features
 
 - **One window for all bags, auto-sorted into categories.** Categories include Quest Items, Weapons, Armor, Consumables, Trade Goods, Gems & Enhancements, Recipes, Keys, Junk and Free Slots. Items in a category are sorted by quality, then name.
-- **Bank window** with Character and Warband tabs, plus Restack and Deposit Reagents buttons.
+- **Bank window** with Character and Warband tabs, plus Restack and Deposit Reagents buttons. To buy bank tabs or change tab settings, click **Blizzard Bank** at the bottom of the bank window to show the default bank window, then click it again to hide it. Buying tabs only works from Blizzard's own window, because the game blocks addons from doing it.
 - **View any character's bags and bank from anywhere.** Use the name button in the top right to switch characters. TBag can only show what it has seen, so log in to each character once and visit a banker.
 - **Search.** The search box dims items that don't match. `/tbag find <text>` searches every character's bags, bank, equipped gear and mail.
 - **Tooltip counts.** Item tooltips show how many of that item each character has.
